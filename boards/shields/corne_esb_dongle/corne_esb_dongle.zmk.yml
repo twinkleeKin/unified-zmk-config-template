@@ -1,0 +1,8 @@
+file_format: "1"
+id: corne_esb_dongle
+name: Corne ESB Dongle
+type: shield
+url: https://github.com/foostan/crkbd/
+requires: [pro_micro]
+features:
+  - keys

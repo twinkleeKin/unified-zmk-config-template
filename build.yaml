@@ -1,20 +1,19 @@
-# This file generates the GitHub Actions matrix.
-# For simple board + shield combinations, add them to the top level board and
-# shield arrays, for more control, add individual board + shield combinations
-# to the `include` property. You can also use the `cmake-args` property to
-# pass flags to the build command, `snippet` to add a Zephyr snippet, and
-# `artifact-name` to assign a name to distinguish build outputs from each other:
+# 本文件生成 GitHub Actions 的构建矩阵（每项产出一个 uf2）。
 #
-# board: [ "nice_nano" ]
-# shield: [ "corne_left", "corne_right" ]
-# include:
-#   - board: bdn9_rev2
-#   - board: nice_nano
-#     shield: reviung41
-#   - board: nice_nano
-#     shield: corne_left
-#     snippet: studio-rpc-usb-uart
-#     cmake-args: -DCONFIG_ZMK_STUDIO=y
-#     artifact-name: corne_left_with_studio
+# 现有的 ESB 拓扑（dongle 作 central，左右手作 peripheral）：
+#   corne_esb_dongle : 无按键的 USB 接收器（central），插到主机 USB 口
+#   corne_left       : 左手，ESB peripheral id = 1
+#   corne_right      : 右手，ESB peripheral id = 2
 #
+# 注意：nice_nano_v2 在 ZMK main（Zephyr 4.1 / HWMv2）里叫 nice_nano@2.0.0，
+#       //zmk 是 ZMK 的 board variant 限定符，缺少它构建会直接报错。
 ---
+include:
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_esb_dongle
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_left
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_right

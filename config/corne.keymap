@@ -1,0 +1,160 @@
+/*
+ * Copyright (c) 2020 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * Corne + Lariska 鼠标 的统一 keymap。
+ *
+ * 这个文件被三个固件共用，但**只有 dongle（central）会真正使用它**：
+ * ZMK 的 split 架构里，peripheral 只上报"哪个位置被按下"，由 central 的 keymap
+ * 决定这个位置是什么键。所以鼠标按键含义、Corne 键位、层，全都在这里定义。
+ *
+ * ---------------------------------------------------------------------------
+ * 键位编号（与 config/corne.overlay 里的 transform 覆盖必须一致）
+ * ---------------------------------------------------------------------------
+ *   0~4  : Lariska 鼠标的 5 个按键
+ *          0 = 左键 LCLK   1 = 右键 RCLK   2 = 中键 MCLK
+ *          3 = 前进 MB4（点按）/ 按住进层 3
+ *          4 = 后退 MB5（点按）/ 按住进层 4
+ *   5~46 : Corne 自己的 42 键（顺序与官方 corne.keymap 相同）
+ *
+ * 鼠标固件那边按键保持原样（gpio-direct kscan，位置 0~4），
+ * 是我们在 Corne 的 matrix-transform 前面插了 5 个占位条目，把 42 键整体
+ * 后移到 5~46（见 config/corne.overlay）。
+ *
+ * ---------------------------------------------------------------------------
+ * 层
+ * ---------------------------------------------------------------------------
+ *   0 default   Corne 默认层 + 鼠标按键
+ *   1 lower     Corne 数字/方向层
+ *   2 raise     Corne 符号层
+ *   3 mouse_vol 按住鼠标第 4 键时进入（滚轮变成音量）
+ *   4 mouse_scr 按住鼠标第 5 键时进入（仍是滚轮）
+ *
+ * 滚轮（鼠标的编码器 → sensor 事件）由每层的 sensor-bindings 决定。
+ */
+
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>
+
+/ {
+    behaviors {
+        /*
+         * 鼠标第 4/5 键：点按 = MB4/MB5，按住 = 临时层（3/4）。
+         * 对应鼠标原来的 u_lt_mouse，只是层号从 1/2 改成 3/4，
+         * 免得和 Corne 的 lower/raise 冲突。
+         */
+        u_lt_mouse: u_lt_mouse {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            tapping-term-ms = <220>;
+            quick-tap-ms = <200>;
+            flavor = "tap-preferred";
+            bindings = <&mo>, <&mkp>;
+        };
+
+        /* 编码器旋转 → 上下滚（鼠标原来的 rot_enc，用 ZMK 内置的 &msc 滚轮行为） */
+        rot_enc: sensor_rotate {
+            compatible = "zmk,behavior-sensor-rotate";
+            #sensor-binding-cells = <0>;
+            bindings = <&msc MOVE_Y(-37)>, <&msc MOVE_Y(37)>;
+            tap-ms = <65>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+
+        default_layer {
+            display-name = "Default Layer";
+// 鼠标(0~4)：LCLK RCLK MCLK MB4 MB5    Corne(5~46) 见下面注释
+// -----------------------------------------------------------------------------------------
+// |  TAB |  Q  |  W  |  E  |  R  |  T  |   |  Y  |  U   |  I  |  O  |  P  | BSPC |
+// | CTRL |  A  |  S  |  D  |  F  |  G  |   |  H  |  J   |  K  |  L  |  ;  |  '   |
+// | SHFT |  Z  |  X  |  C  |  V  |  B  |   |  N  |  M   |  ,  |  .  |  /  | ESC  |
+//                    | GUI | LWR | SPC |   | ENT | RSE  | ALT |
+            bindings = <
+   &mkp LCLK &mkp RCLK &mkp MCLK &u_lt_mouse 3 MB4 &u_lt_mouse 4 MB5
+   &kp TAB   &kp Q &kp W &kp E &kp R &kp T   &kp Y &kp U  &kp I     &kp O   &kp P    &kp BSPC
+   &kp LCTRL &kp A &kp S &kp D &kp F &kp G   &kp H &kp J  &kp K     &kp L   &kp SEMI &kp SQT
+   &kp LSHFT &kp Z &kp X &kp C &kp V &kp B   &kp N &kp M  &kp COMMA &kp DOT &kp FSLH &kp ESC
+                           &kp LGUI &mo 1 &kp SPACE   &kp RET &mo 2 &kp RALT
+            >;
+            sensor-bindings = <&rot_enc>;
+        };
+
+        lower_layer {
+            display-name = "Lower Layer";
+// -----------------------------------------------------------------------------------------
+// |  TAB |  1  |  2  |  3  |  4  |  5  |   |  6  |  7  |  8  |  9  |  0  | BSPC |
+// |      |     |     |     |     |     |   | LFT | DWN |  UP | RGT |     |      |
+// | SHFT |     |     |     |     |     |   |     |     |     |     |     |      |
+//                    | GUI |     | SPC |   | ENT |     | ALT |
+            bindings = <
+   &mkp LCLK &mkp RCLK &mkp MCLK &u_lt_mouse 3 MB4 &u_lt_mouse 4 MB5
+   &kp TAB   &kp N1 &kp N2 &kp N3 &kp N4 &kp N5   &kp N6   &kp N7   &kp N8 &kp N9    &kp N0 &kp BSPC
+   &trans    &trans &trans &trans &trans &trans   &kp LEFT &kp DOWN &kp UP &kp RIGHT &trans &trans
+   &kp LSHFT &trans &trans &trans &trans &trans   &trans   &trans   &trans &trans    &trans &trans
+                           &kp LGUI &trans &kp SPACE   &kp RET  &trans   &kp RALT
+            >;
+            sensor-bindings = <&rot_enc>;
+        };
+
+        raise_layer {
+            display-name = "Raise Layer";
+// -----------------------------------------------------------------------------------------
+// |  TAB |  !  |  @  |  #  |  $  |  %  |   |  ^  |  &  |  *  |  (  |  )  | BSPC |
+// | CTRL |     |     |     |     |     |   |  -  |  =  |  [  |  ]  |  \  |  `   |
+// | SHFT |     |     |     |     |     |   |  _  |  +  |  {  |  }  | "|" |  ~   |
+//                    | GUI |     | SPC |   | ENT |     | ALT |
+            bindings = <
+   &mkp LCLK &mkp RCLK &mkp MCLK &u_lt_mouse 3 MB4 &u_lt_mouse 4 MB5
+   &kp  TAB  &kp EXCL &kp AT &kp HASH &kp DLLR &kp PRCNT   &kp CARET &kp AMPS  &kp ASTRK &kp LPAR &kp RPAR &kp BSPC
+   &kp LCTRL &trans   &trans &trans   &trans   &trans      &kp MINUS &kp EQUAL &kp LBKT  &kp RBKT &kp BSLH &kp GRAVE
+   &kp LSHFT &trans   &trans &trans   &trans   &trans      &kp UNDER &kp PLUS  &kp LBRC  &kp RBRC &kp PIPE &kp TILDE
+                             &kp LGUI &trans   &kp SPACE   &kp RET   &trans    &kp RALT
+            >;
+            sensor-bindings = <&rot_enc>;
+        };
+
+        /*
+         * 鼠标第 4 键按住时进入：滚轮调音量（鼠标原来的 VOLUME 层）。
+         * Corne 的键位在这一层全是 &trans，会回落到下面激活的层。
+         */
+        mouse_volume_layer {
+            display-name = "Mouse Volume";
+            bindings = <
+   &mkp LCLK &mkp RCLK &mkp MCLK &u_lt_mouse 3 MB4 &u_lt_mouse 4 MB5
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+                       &trans &trans &trans   &trans &trans &trans
+            >;
+            sensor-bindings = <&inc_dec_kp C_VOL_UP C_VOL_DN>;
+        };
+
+        /* 鼠标第 5 键按住时进入：滚轮（鼠标原来的 ADDIONAL 层） */
+        mouse_scroll_layer {
+            display-name = "Mouse Scroll";
+            bindings = <
+   &mkp LCLK &mkp RCLK &mkp MCLK &u_lt_mouse 3 MB4 &u_lt_mouse 4 MB5
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+   &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans
+                       &trans &trans &trans   &trans &trans &trans
+            >;
+            sensor-bindings = <&rot_enc>;
+        };
+    };
+};
+
+/*
+ * 滚轮行为：直接复用 ZMK 内置的 &msc（zmk,behavior-input-two-axis），
+ * 参数照抄鼠标原来 ec_s 的设定（响应更快、没有加速曲线）。
+ */
+&msc {
+    trigger-period-ms = <3>;
+    time-to-max-speed-ms = <100>;
+    acceleration-exponent = <0>;
+};

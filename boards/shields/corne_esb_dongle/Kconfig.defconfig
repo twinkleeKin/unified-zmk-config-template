@@ -1,0 +1,18 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+#
+# dongle 是 central：它连着主机（USB），并通过 ESB 接收左右手的按键。
+# 具体的 Kconfig 参数放在 config/corne_esb_dongle.conf。
+
+if SHIELD_CORNE_ESB_DONGLE
+
+config ZMK_KEYBOARD_NAME
+    default "Corne ESB"
+
+config ZMK_SPLIT
+    default y
+
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif

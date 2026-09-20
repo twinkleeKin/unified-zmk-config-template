@@ -1,3 +1,17 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+#
+# 本仓库同时是：
+#   1. 一个 zmk-config（config/ 目录：west.yml、keymap、overlay、conf）
+#   2. 一个 ZMK module（ESB split transport 的源码：CMakeLists.txt / Kconfig / src / dts）
+#
+# GitHub Actions 的 build-user-config.yml 检测到本文件后，会把仓库根目录作为
+# ZMK_EXTRA_MODULES 传入，于是上面的 CMakeLists.txt 与 Kconfig 会被编译进来，
+# boards/shields 下的 shield 也会被 ZMK 找到。
+
 build:
+  cmake: .
+  kconfig: Kconfig
   settings:
     board_root: .
+    dts_root: .

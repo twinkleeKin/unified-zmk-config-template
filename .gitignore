@@ -1,0 +1,22 @@
+# west 工作区产物（本地构建时会出现）
+.west/
+build/
+nrf/
+nrfxlib/
+zephyr/
+modules/
+tools/
+bootloader/
+
+# 编辑器 / 系统
+.vscode/
+*.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# clangd
+.cache/
+src/.cache/

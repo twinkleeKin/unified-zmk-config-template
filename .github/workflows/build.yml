@@ -3,4 +3,6 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
-    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@v0.3
+    # 这个 ref 必须与 config/west.yml 里 zmk 的 revision 属于同一版本线：
+    # 两边要么都用 main（ESB 模块要求的 0.4 / Zephyr 4.1 一代），要么都固定到同一个 tag/sha。
+    uses: zmkfirmware/zmk/.github/workflows/build-user-config.yml@main

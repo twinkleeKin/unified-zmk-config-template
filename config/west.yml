@@ -1,14 +1,49 @@
+# ZMK ESB split transport 所需的 west manifest。
+#
+# 与普通 zmk-config 的区别：
+#   1. zmk 走 main（Zephyr 4.1 / HWMv2 一代），ESB 模块只支持这一代，
+#      不能用 v0.3 及其它 Zephyr 3.5 的老版本；
+#   2. 需要额外拉取 nRF Connect SDK（sdk-nrf）与 nrfxlib：ESB / MPSL 的实现由它们提供。
+#      sdk-nrf 必须用 badjeff 打了 ZMK 适配补丁的 v3.1-branch+zmk-fixes，否则
+#      CMake 配置校验过不去；
+#   3. ESB 模块源码已经合并进本仓库（CMakeLists.txt / Kconfig / src / dts），
+#      所以这里不再需要 zmk-feature-split-esb 这个 project。
+#      若想改回外部模块，可删掉本仓库根的 CMakeLists.txt / Kconfig / src / dts，
+#      并在 projects 里加上：
+#        - name: zmk-feature-split-esb
+#          remote: badjeff
+#          revision: zmk-0.4
+
 manifest:
-  defaults:
-    revision: v0.3
   remotes:
+    - name: badjeff
+      url-base: https://github.com/badjeff
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
-    # Additional modules containing boards/shields/custom code can be listed here as well
-    # See https://docs.zephyrproject.org/3.2.0/develop/west/manifest.html#projects
+    - name: nrfconnect
+      url-base: https://github.com/nrfconnect
+
   projects:
+    # ZMK 本体：pin 到官方 commit 9ebbeff0（2026-09-15 main），
+    # 与鼠标固件项目（twinkleeKin-ariska）用的是同一个版本，两边保持一致便于排查。
+    # 想跟踪最新 main 就把 revision 换成 main。
     - name: zmk
       remote: zmkfirmware
+      revision: 9ebbeff0a8b69a42f14aec022cdf16c7a107b9e0
       import: app/west.yml
+
+    # nRF Connect SDK（ZMK 补丁版）：ESB 驱动与 MPSL 所在
+    - name: sdk-nrf
+      remote: badjeff
+      revision: v3.1-branch+zmk-fixes
+      path: nrf
+
+    # NCS 的二进制库（MPSL 等）
+    - name: nrfxlib
+      remote: nrfconnect
+      revision: v3.1-branch
+      repo-path: sdk-nrfxlib
+      path: nrfxlib
+
   self:
     path: config

@@ -1,0 +1,195 @@
+# Copyright (c) 2025 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+if ZMK_SPLIT && ZMK_SPLIT_ESB
+
+menu "ESB Transport"
+
+config ZMK_SPLIT_ESB_ROLE_CENTRAL
+    bool
+
+endmenu
+
+config ZMK_SPLIT_ESB_PRIORITY
+    int "ESB transport priority"
+    default 2
+    help
+        Lower number priorities transports are favored over higher numbers.
+
+config ZMK_SPLIT_ESB_PERIPHERAL_ID
+    int "Default peripheral id for TX"
+    default 0
+
+config ZMK_SPLIT_ESB_PERIPHERAL_COUNT
+    int "Override peripheral count for RX in central.h (zero to disable overriding)"
+    default 0
+
+config ZMK_SPLIT_ESB_CTLR_TX_PWR_PLUS_8
+    bool "+8 dBm"
+    default y
+
+config ZMK_SPLIT_ESB_PROTO_TX_ACK
+    bool "Await ACK signal per sending packet for TX/RX"
+    default y
+
+config ZMK_SPLIT_ESB_MSG_POSTFIX_CRC
+    bool "Enable application level checksum"
+    default y
+
+config ZMK_SPLIT_ESB_PROTO_TX_RETRANSMIT_DELAY
+    int "The delay between each retransmission of unacknowledged packets"
+    default 600
+
+config ZMK_SPLIT_ESB_PROTO_TX_RETRANSMIT_COUNT
+    int "The number of retransmission attempts before transmission fail"
+    default 3
+
+config ZMK_SPLIT_ESB_PROTO_MSGQ_ITEMS
+    int "Number of message queue size to buffer ESB payload for TX in between multi-protocol service timeslots (CONFIG_MPSL_TIMESLOT_SESSION_COUNT)"
+    default 128
+
+config ZMK_SPLIT_ESB_EVENT_BUFFER_ITEMS
+    int "Number of peripheral events to buffer for TX/RX"
+    default 128
+
+config ZMK_SPLIT_ESB_CMD_BUFFER_ITEMS
+    int "Number of central commands to buffer for TX/RX"
+    default 32
+
+config ZMK_SPLIT_ESB_RF_CH_HOP
+    bool "Enable RF channel hopping"
+    default y
+    help
+      When enabled, both TX and RX sides jump to the next
+      pre-computed RF channel after TX attempts failure or corrupted
+      RX data, allowing the link to recover from interference
+      without disconnecting.
+
+config ZMK_SPLIT_ESB_RF_CH_HOP_CH_MIN
+    int "Minimum of RF channel offset for 2Mbps ESB (2400 MHz + value)"
+    default 5
+    range 2 80
+    help
+      Sets the lower boundary channel for the ESB frequency hopping pool.
+      When using ESB_BITRATE_2MBPS, the channel range is strictly limited 
+      to 2 (2402 MHz) through 80 (2480 MHz) to comply with regulatory 
+      bandwidth requirements (FCC/ETSI) and prevent out-of-band emissions.
+
+config ZMK_SPLIT_ESB_RF_CH_HOP_CH_STEP
+    int "Additional RF channel for each step of hopping (default +18 MHz)"
+    default 18
+    help
+      The number of channels the radio skips during each frequency hop.
+      For example, a step of 18 changes the carrier frequency by 18 MHz.
+
+config ZMK_SPLIT_ESB_RF_CH_HOP_CH_COUNT 
+    int "Number of channels in hopping sequence (default max 2477 MHz)"
+    default 4
+    help
+      The total number of unique frequency hops in the rotation sequence.
+      With a default minimum channel of 5 and a step size of 18, 4 hops 
+      will utilize channels 5, 23, 41, 59, and 77 (max frequency 2477 MHz)
+      before wraps back to the first channel.
+
+config ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY
+    int "Channel hop retry limit for loss-sensitive peripheral events"
+    default 6 if ZMK_SPLIT_ESB_RF_CH_HOP
+    default 0
+    help
+      The maximum number of channel hops attempted for loss-sensitive 
+      peripheral data (such as keystrokes). If the built-in ESB 
+      retransmissions fail on the current frequency, this value 
+      defines how many subsequent channel hops the system will 
+      execute to try and deliver the packet.
+      Default 2 plus ZMK_SPLIT_ESB_RF_CH_HOP_CH_COUNT for wrapping back
+      after go thru full channels.
+
+config ZMK_SPLIT_ESB_RETRY_INPUT_EVENT
+    int "Retry count for input events"
+    default 0
+
+config ZMK_SPLIT_ESB_RETRY_KEY_POSITION
+    int "Retry count for key position events"
+    default ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY if ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY > 0
+    default 3
+
+config ZMK_SPLIT_ESB_RETRY_SENSOR_EVENT
+    int "Retry count for sensor events"
+    default ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY if ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY > 0
+    default 2
+
+config ZMK_SPLIT_ESB_RETRY_BATTERY_EVENT
+    int "Retry count for battery events"
+    default ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY if ZMK_SPLIT_ESB_RF_CH_HOP_EVT_RETRY > 0
+    default 1
+
+config ZMK_SPLIT_ESB_RETRY_CMD
+    int "Retry count for central commands"
+    default 1
+
+config ZMK_SPLIT_ESB_MSGQ_FULL_TIMEOUT_MS
+    int "Timeout (ms) to clear retry table when msgq stays full"
+    default 3000
+
+config ZMK_SPLIT_ESB_AUTO_HEAL_KEY_POS_MAX
+    int "Max key position to track and heal lost packet from peripherals"
+    default 36
+    help
+        Central shield config, equals to number of keys in keymaps
+
+config ZMK_SPLIT_ESB_USE_TIMESLOT
+    bool "Use MPSL timeslot to schedule radio"
+    depends on BLE
+    select MPSL_ASSERT_HANDLER
+    help
+        When enabled, ESB has interrupted radio access with MPSL
+        timeslots. BLE can run simultaneously.
+
+config ZMK_SPLIT_ESB_TIMESLOT_REQUEST_TIMEOUT_US
+    int "Timeout to grant the MPSL slot (default 1000 ms)"
+    default 1000000
+
+config ZMK_SPLIT_ESB_TIMESLOT_LENGTH_US
+    int "Duration of the active radio window of MPSL slot (default 10 ms)"
+    default 10000
+
+config ZMK_SPLIT_ESB_TIMESLOT_EXT_MARGIN_MARGIN
+    int "Headroom allocated for the extension request MPSL timeslot (default 4ms)"
+    default 4000
+
+config ZMK_SPLIT_ESB_TIMESLOT_REQ_EARLIEST_MARGIN
+    int "Margin to submit a new MPSL timeslot request (default 2ms)"
+    default 2000
+
+module = ZMK_SPLIT_ESB
+module-str = ZMK_SPLIT_ESB
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endif #ZMK_SPLIT && ZMK_SPLIT_ESB
+
+# **************************************************************************
+# Following config is cloned for battery monitoring, if BLE is not enabled.
+# **************************************************************************
+
+if ZMK_SPLIT && !ZMK_SPLIT_BLE
+if ZMK_SPLIT_ROLE_CENTRAL
+
+config ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS
+    int "Number of peripherals that will connect to the central."
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING
+    bool "Fetch Peripheral Battery Level Info"
+
+if ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_QUEUE_SIZE
+    int "Max number of battery level events to queue when received from peripherals"
+    default ZMK_SPLIT_BLE_CENTRAL_PERIPHERALS
+
+config ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_PROXY
+    bool "Proxy Peripheral Battery Level Info"
+
+endif #ZMK_SPLIT_BLE_CENTRAL_BATTERY_LEVEL_FETCHING
+
+endif #ZMK_SPLIT_ROLE_CENTRAL
+endif #ZMK_SPLIT && !ZMK_SPLIT_BLE

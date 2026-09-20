@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) 2025 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ *
+ * 文件名是 corne.overlay，ZMK 会把它追加到 corne_left / corne_right /
+ * corne_esb_dongle 三个构建上（shield 名前缀候选包含 "corne"），
+ * 所以这里的东西天然对三块固件保持一致 —— ESB 必须收发双方一致才能通信。
+ */
+
+#include <dt-bindings/zmk/matrix_transform.h>
+
+/ {
+    /*
+     * ESB 收发地址。
+     * 这些是文档里的示例地址。如果周围还有别人用 ESB 的键盘/鼠标，请换成自己
+     * 随机的一组值（三个数组都改），否则可能互相干扰。
+     */
+    esb_split {
+        compatible = "zmk,esb-split";
+        base-addr-0 = <0xE7 0xE7 0xE7 0xE7>;
+        base-addr-1 = <0xC2 0xC2 0xC2 0xC2>;
+        addr-prefix = <0xE7 0xC2 0xC3 0xC4 0xC5 0xC6 0xC7 0xC8>;
+    };
+};
+
+/*
+ * ============================================================================
+ * 键位编号空间的分配：0~4 让给鼠标，Corne 整体后移到 5~46
+ * ============================================================================
+ *
+ * ZMK 里 keymap 的"位置号"就是 matrix-transform 的 map 数组下标
+ * （binding 里的说明：map 是 "a mapping from keymap logical positions to
+ * matrix physical positions"，即第 i 项 ⇒ 位置 i）。
+ *
+ * Lariska 鼠标的 5 个按键是 gpio-direct kscan，上报的是它自己 map 的 0~4；
+ * 而 Corne 官方 map 的前 5 项（TAB/Q/W/E/R）同样占 0~4，两边会撞车。
+ * 鼠标固件不动，所以这里在 Corne 的 map 前面插入 5 个占位条目，
+ * 把 Corne 的 42 个键整体推到位置 5~46，0~4 就空出来给鼠标了。
+ *
+ * 占位用的是 RC(3,0)、RC(3,1)、RC(3,2)、RC(3,9)、RC(3,10)：
+ * 官方 6 列 map 里没用到的格子（Corne 右手拇指只到 RC(3,6)~RC(3,8)），
+ * 硬件永远不会产生这些行列，所以它们永远匹配不到，纯属占位。
+ *
+ * 本文件被三个固件共用，位置编号必须保持一致：
+ * 左右手上报 5~46，dongle 的 keymap 也按 5~46 解释。
+ * （35 键的 5 列布局 map 保持官方 36 项不动；我们没有用到它，
+ *   同时 ZMK 的 keymap 长度取所有布局 map 长度的最大值，仍是 47。）
+ */
+&default_transform {
+    map = <
+// 0~4：给鼠标留的位置（下面是 Corne 官方 42 键，整体后移 5 位）
+RC(3,0) RC(3,1) RC(3,2) RC(3,9) RC(3,10)
+
+// | SW1  | SW2  | SW3  | SW4  | SW5  | SW6  |   | SW6  | SW5  | SW4  | SW3  | SW2  | SW1  |
+// | SW7  | SW8  | SW9  | SW10 | SW11 | SW12 |   | SW12 | SW11 | SW10 | SW9  | SW8  | SW7  |
+// | SW13 | SW14 | SW15 | SW16 | SW17 | SW18 |   | SW18 | SW17 | SW16 | SW15 | SW14 | SW13 |
+//                      | SW19 | SW20 | SW21 |   | SW21 | SW20 | SW19 |
+RC(0,0) RC(0,1) RC(0,2) RC(0,3) RC(0,4) RC(0,5)  RC(0,6) RC(0,7) RC(0,8) RC(0,9) RC(0,10) RC(0,11)
+RC(1,0) RC(1,1) RC(1,2) RC(1,3) RC(1,4) RC(1,5)  RC(1,6) RC(1,7) RC(1,8) RC(1,9) RC(1,10) RC(1,11)
+RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5)  RC(2,6) RC(2,7) RC(2,8) RC(2,9) RC(2,10) RC(2,11)
+                        RC(3,3) RC(3,4) RC(3,5)  RC(3,6) RC(3,7) RC(3,8)
+    >;
+};
